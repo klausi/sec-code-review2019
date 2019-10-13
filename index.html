@@ -4,7 +4,7 @@
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-		<title>Finding security vulnerabilities through code review</title>
+		<title>Find security vulnerabilities through code review</title>
 
 		<link rel="stylesheet" href="css/reset.css">
 		<link rel="stylesheet" href="css/reveal.css">
@@ -12,7 +12,7 @@
 		<link rel="stylesheet" href="css/custom.css">
 
 		<!-- Theme used for syntax highlighting of code -->
-		<link rel="stylesheet" href="lib/css/monokai.css">
+		<link rel="stylesheet" href="lib/css/github.css">
 
 		<!-- Printing and PDF exports -->
 		<script>
@@ -28,9 +28,11 @@
 			<div class="slides">
 				<section data-markdown>
 						<textarea data-template data-separator-notes="^Note:">
-						## Finding security vulnerabilities through code review
+						## Find security vulnerabilities through code review
 
 						Klaus Purer, [jobiqo.com](https://www.jobiqo.com)
+
+						[drupal.org/u/klausi](https://www.drupal.org/u/klausi)
 
 						<p>
 						<a href="https://mastodon.social/@klausi">
@@ -42,21 +44,157 @@
 						</a>
 						</p>
 
-
 						<a href="https://twitter.com/_klausi_">
 							<svg class="svg-icon" viewBox="0 0 400 400"><defs><style>.cls-1{fill:none;}.cls-2{fill:#1da1f2;}</style></defs><title>Twitter_Logo_Blue</title><rect class="cls-1" width="400" height="400"/><path class="cls-2" d="M153.62,301.59c94.34,0,145.94-78.16,145.94-145.94,0-2.22,0-4.43-.15-6.63A104.36,104.36,0,0,0,325,122.47a102.38,102.38,0,0,1-29.46,8.07,51.47,51.47,0,0,0,22.55-28.37,102.79,102.79,0,0,1-32.57,12.45,51.34,51.34,0,0,0-87.41,46.78A145.62,145.62,0,0,1,92.4,107.81a51.33,51.33,0,0,0,15.88,68.47A50.91,50.91,0,0,1,85,169.86c0,.21,0,.43,0,.65a51.31,51.31,0,0,0,41.15,50.28,51.21,51.21,0,0,1-23.16.88,51.35,51.35,0,0,0,47.92,35.62,102.92,102.92,0,0,1-63.7,22A104.41,104.41,0,0,1,75,278.55a145.21,145.21,0,0,0,78.62,23"/></svg>
-							https://twitter.com/_klausi_
+							twitter.com/_klausi_
 						</a>
 
 						Drupalcon Amsterdam 2019
 						</textarea>
 				</section>
 				<section>
+						<style>
+								.container{
+										display: flex;
+								}
+								.col{
+										flex: 1;
+								}
+								</style>
+						<h2>Goals of code review</h2>
 
+							<div class="container">
 
+							<div class="col">
+								<ul>
+								<li>Find problems before they hit production</li>
+								<li>Identify vulnerabilities before they get exploited</li>
+								<li>Knowledge transfer from reviewer feedback</li>
+								<li>Save cost by preventing problems</li>
+								</ul>
+							</div>
+
+							<div class="col">
+								<img src="drupal_review.png">
+							</div>
+
+							</div>
 
 				</section>
-				<section>Slide 2</section>
+				<section data-markdown>
+					<textarea data-template data-separator-notes="^Note:">
+						## Drupal 8 module layout
+						<pre>
+						pants
+						+-- src
+						|   +-- PantsController.php
+						+-- pants.install
+						+-- pants.links.menu.yml
+						+-- pants.module
+						+-- pants.routing.yml
+						+-- pants.services.yml
+						+-- pants.token.inc
+						</pre>
+
+					</textarea>
+				</section>
+
+				<section data-markdown>
+						<textarea data-template data-separator-notes="^Note:">
+							## Attack entry point: Routing
+							<pre>
+							pants
+							+-- src
+							|   +-- PantsController.php
+							+-- pants.install
+							+-- pants.links.menu.yml
+							+-- pants.module
+							<strong>+-- pants.routing.yml</strong>
+							+-- pants.services.yml
+							+-- pants.token.inc
+							</pre>
+
+						</textarea>
+				</section>
+
+				<section data-markdown>
+					<textarea data-template data-separator-notes="^Note:">
+						## Access Bypass in a route<!-- .element: class="fragment" -->
+						pants.routing.yml
+						```yml
+						pants.admin:
+							path: '/admin/pants'
+							defaults:
+								_form: '\Drupal\pants\AdminForm'
+							requirements:
+								_permission: 'access content'
+							options:
+								_admin_route: TRUE
+						```
+						The permission "access content" is probably not correct for an admin page!<!-- .element: class="fragment" -->
+
+						[OWASP A5-Broken Access Control](https://www.owasp.org/index.php/Top_10-2017_A5-Broken_Access_Control)<!-- .element: class="fragment" -->
+					</textarea>
+				</section>
+
+				<section data-markdown>
+					<textarea data-template data-separator-notes="^Note:">
+						## Access Bypass in a route (2)
+						pants.routing.yml
+						```yml
+						pants.admin:
+							path: '/admin/pants'
+							defaults:
+								_form: '\Drupal\pants\AdminForm'
+							requirements:
+								_access: 'TRUE'
+							options:
+								_admin_route: TRUE
+						```
+						Really dangerous, any attacker can access this admin path!
+					</textarea>
+				</section>
+
+				<section data-markdown>
+					<textarea data-template data-separator-notes="^Note:">
+						## CSRF in a route<!-- .element: class="fragment" -->
+						pants.routing.yml
+						```yml
+						pants.delete:
+							path: '/pants/delete/{pants}'
+							defaults:
+								_controller: '\Drupal\pants\DeleteController::delete'
+							requirements:
+								_permission: 'delete pants'
+						```
+						src/DeleteController.php
+						```php
+						class DeleteController extends ControllerBase {
+							public function delete(Pants $pants) {
+								$pants->delete();
+								return ['#markup' => 'Pants deleted successfully!'];
+							}
+						}
+						```
+					</textarea>
+				</section>
+
+				<section data-markdown>
+					<textarea data-template data-separator-notes="^Note:">
+						## Cross Site Request Forgery (CSRF)
+						An attacker tricks you to visit her HTML page:
+						```html
+						<img src="https://yourdrupal.org/pants/delete/5">
+						```
+						1. Your browser thinks this is an image and fetches it
+						2. It sends your session cookie along
+						3. The Pants delete controller executes
+						4. Pants 5 are deleted behind your back!
+
+						Solution: confirmation forms or CSRF tokens in the URL/request
+					</textarea>
+				</section>
+
 			</div>
 		</div>
 
