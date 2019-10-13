@@ -201,8 +201,8 @@
 
       <section data-markdown>
         <textarea data-template data-separator-notes="^Note:">
-            ## Drupal 7: hook_menu()
-            Wrong permission
+            ## Drupal 7: access bypass
+            Wrong permission in hook_menu()
             ```php
             function pants_menu() {
               $items['admin/pants'] = array(
@@ -219,20 +219,56 @@
 
       <section data-markdown>
         <textarea data-template data-separator-notes="^Note:">
-              ## Drupal 7: hook_menu()
-              No access control at all
-              ```php
-              function pants_menu() {
-                $items['admin/pants'] = array(
-                  'title' => 'Pants',
-                  'page callback' => 'drupal_get_form',
-                  'page arguments' => array('pants_admin_form'),
-                  'access callback' => TRUE,
-                );
-                return $items;
-              }
-              ```
-            </textarea>
+            ## Drupal 7: access bypass (2)
+            No access control at all in hook_menu()
+            ```php
+            function pants_menu() {
+              $items['admin/pants'] = array(
+                'title' => 'Pants',
+                'page callback' => 'drupal_get_form',
+                'page arguments' => array('pants_admin_form'),
+                'access callback' => TRUE,
+              );
+              return $items;
+            }
+            ```
+        </textarea>
+      </section>
+
+      <section data-markdown>
+        <textarea data-template data-separator-notes="^Note:">
+            ## Drupal 7: CSRF
+            CSRF in hook_menu()
+            ```php
+            function pants_menu() {
+              $items['admin/delete/%'] = array(
+                'title' => 'Delete pants',
+                'page callback' => 'pants_delete',
+                'page arguments' => array(2),
+                'access arguments' => array('delete pants'),
+              );
+              return $items;
+            }
+            function pants_delete($pant_id) {
+              db_delete('pants')->condition('id', $pant_id)->execute();
+            }
+            ```
+        </textarea>
+      </section>
+
+      <section data-markdown>
+        <textarea data-template data-separator-notes="^Note:">
+            ## Attack entry points summarized
+
+            * Drupal 8:
+              * routing.yml files
+              * controllers in src
+            * Drupal 7:
+              * hook_menu() in module files
+              * page callbacks in module/inc files
+
+            Check for Access Bypass and CSRF there!
+        </textarea>
       </section>
 
     </div>
