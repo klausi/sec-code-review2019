@@ -271,6 +271,148 @@
         </textarea>
       </section>
 
+      <section data-markdown>
+        <textarea data-template data-separator-notes="^Note:">
+            ## SQL injection<!-- .element: class="fragment" -->
+
+            ```php
+            public function getLogItemsSinceTimestamp($timestamp) {
+              $type = self::LOGGER_CHANNEL_NAME;
+              $query = $this->database->select('watchdog', 'w');
+              $query->fields('w', [
+                'wid',
+              ]);
+              $query->where("w.timestamp > $timestamp AND w.type = '$type'");
+              return $query->execute()->fetchCol();
+            }
+            ```
+
+            Never concatenate variables into SQL strings!<!-- .element: class="fragment" -->
+
+            [OWASP A1-Injection](https://www.owasp.org/index.php/Top_10-2017_A1-Injection)<!-- .element: class="fragment" -->
+        </textarea>
+      </section>
+
+      <section data-markdown>
+        <textarea data-template data-separator-notes="^Note:">
+            ## Correct SQL placeholders
+
+            ```php
+            public function getLogItemsSinceTimestamp($timestamp) {
+              $type = self::LOGGER_CHANNEL_NAME;
+              $query = $this->database->select('watchdog', 'w');
+              $query->fields('w', [
+                'wid',
+              ]);
+              $query->condition('w.timestamp', $timestamp, '>');
+              $query->condition('w.type', $type, '=');
+              return $query->execute()->fetchCol();
+            }
+            ```
+        </textarea>
+      </section>
+
+      <section data-markdown>
+        <textarea data-template data-separator-notes="^Note:">
+            ## Shell injection<!-- .element: class="fragment" -->
+
+            ```php
+            function recruiter_job_pdf_content_extract($url) {
+              $tika_lib_path = variable_get(
+                'recruiter_job_pdf_content_tika_lib_path',
+                '/opt/tika/tika-app.jar'
+              );
+              // Parse PDF using Apache Tika and output as html.
+              $cmd = 'java -jar ' . $tika_lib_path . ' -h -eUTF-8 ' . $url;
+              $parsed = shell_exec($cmd);
+              return parsed;
+            }
+            ```
+        </textarea>
+      </section>
+
+      <section data-markdown>
+        <textarea data-template data-separator-notes="^Note:">
+            ## Use escapeshellarg() for arguments
+
+            ```php
+            function recruiter_job_pdf_content_extract($url) {
+              $tika_lib_path = variable_get(
+                'recruiter_job_pdf_content_tika_lib_path',
+                '/opt/tika/tika-app.jar'
+              );
+              // Parse PDF using Apache Tika and output as html.
+              $cmd = 'java -jar '
+                . escapeshellarg($tika_lib_path)
+                . ' -h -eUTF-8 '
+                . escapeshellarg($url);
+              $parsed = shell_exec($cmd);
+              return parsed;
+            }
+            ```
+
+            Or: avoid using shell_exec() and friends!
+        </textarea>
+      </section>
+
+      <section data-markdown>
+        <textarea data-template data-separator-notes="^Note:">
+            ## Injection summarized
+
+            * Look in page callbacks (D7) and controllers (D8) for database queries and SQL
+            * Look in API functions, services, plugins for shell_exec(), exec(), system() and friends
+            * Concatenating strings (user input) is a good indicator
+        </textarea>
+      </section>
+
+      <section data-markdown>
+        <textarea data-template data-separator-notes="^Note:">
+            ## AccessResult if() bypass<!-- .element: class="fragment" -->
+
+            <pre class="stretch"><code data-trim>
+              function taxonomy_per_user_taxonomy_term_access(EntityInterface $entity) {
+                if (TaxonomyPerUserAccessCheck::checkCreatorAccess(
+                    '', $entity->getConfigTarget()))
+                ) {
+                  return AccessResult::allowed();
+                }
+                return AccessResult::neutral();
+              }
+              abstract class TaxonomyPerUserAccessCheck {
+                public static function checkCreatorAccess($op = NULL, $vid = NULL) {
+                  // Admin: always.
+                  if (\Drupal::currentUser()->hasPermission('administer taxonomy')) {
+                    return AccessResult::allowed();
+                  }
+                  // Skipping some more code here...
+                  return AccessResult::neutral();
+                }
+              }
+            </code></pre>
+        </textarea>
+      </section>
+
+      <section data-markdown>
+        <textarea data-template data-separator-notes="^Note:">
+            ## AccessResult if() correct
+
+            <pre><code data-trim data-line-numbers="2,3">
+              function taxonomy_per_user_taxonomy_term_access(EntityInterface $entity) {
+                if (TaxonomyPerUserAccessCheck::checkCreatorAccess(
+                    '', $entity->getConfigTarget())->isAllowed())
+                ) {
+                  return AccessResult::allowed();
+                }
+                return AccessResult::neutral();
+              }
+              // Other code omitted here...
+            </code></pre>
+
+            * `if ($accessResult())` will always be TRUE because it is an object and true-ish!
+            * Always use `if ($accessResult()->isAllowed())` for access checks
+        </textarea>
+      </section>
+
     </div>
   </div>
 
