@@ -63,7 +63,6 @@
           .col {
             flex: 1;
           }
-
         </style>
         <h2>Goals of code review</h2>
 
@@ -408,8 +407,102 @@
               // Other code omitted here...
             </code></pre>
 
-            * `if ($accessResult())` will always be TRUE because it is an object and true-ish!
-            * Always use `if ($accessResult()->isAllowed())` for access checks
+            * `if ($accessResult())`
+            * will always be TRUE because it is an object and true-ish!
+            * for access checks always use
+            * `if ($accessResult()->isAllowed())`
+        </textarea>
+      </section>
+
+      <section data-markdown>
+        <textarea data-template data-separator-notes="^Note:">
+            ## Access control summarized
+
+            * Look in access hooks like hook_entity_access()
+            * Look in access controllers (EntityAccessControlHandler)
+            * Are the if() conditions correct?
+        </textarea>
+      </section>
+
+      <section data-markdown>
+        <textarea data-template data-separator-notes="^Note:">
+            ## Render array XSS
+
+            Is this safe?
+            ```php
+            $user_input = '<script>alert("XSS");</script>';
+            $render_array['#markup'] = $user_input;
+            return $render_array;
+            ```
+            <ul>
+              <li class="fragment"><strong>Drupal 8: safe!</strong> Render system runs Xss:filterAdmin() on it</li>
+              <li class="fragment"><strong>Drupal 7: unsafe!</strong> Render system happily prints it as is</li>
+            </ul>
+
+            [OWASP A7-Cross-Site Scripting (XSS)](https://www.owasp.org/index.php/Top_10-2017_A7-Cross-Site_Scripting_(XSS))
+        </textarea>
+      </section>
+
+      <section data-markdown>
+        <textarea data-template data-separator-notes="^Note:">
+            ## Twig template XSS<!-- .element: class="fragment" -->
+
+            ```twig
+            <article{{ attributes.addClass(classes) }}>
+              <header>
+                {{ title_prefix }}
+                  {% if label and not page %}
+                  <h2{{ title_attributes.addClass('node__title') }}>
+                    <a href="{{ url }}">{{ node.label|raw }}</a>
+                  </h2>
+                  {% endif %}
+                {{ title_suffix }}
+              </header>
+              <div{{ content_attributes.addClass('node__content') }}>
+                {{ content }}
+              </div>
+            </article>
+            ```
+
+            Review templates if the raw filter is used correcty.<!-- .element: class="fragment" -->
+        </textarea>
+      </section>
+
+      <section data-markdown>
+        <textarea data-template data-separator-notes="^Note:">
+            ## XSS output summarized
+
+            * Drupal 8's auto-escaping is really good
+            * XSS in Drupal 7 is the most common security vulnerability! Check:
+              * PHP templates
+              * Theme functions
+              * Preprocess functions
+              * Page callbacks that generate output
+              * check_plain() and friends should be used, see [Handle text in a secure fashion](https://www.drupal.org/docs/7/security/writing-secure-code/handle-text-in-a-secure-fashion)
+
+        </textarea>
+      </section>
+
+      <section data-markdown>
+        <textarea data-template data-separator-notes="^Note:">
+            ## XSS Testing
+
+            Unsure if safe? Test inputs with
+
+            ```html
+            <script>alert("XSS");</script>
+            ```
+
+            ![Screenshot](xss-popup.png)
+        </textarea>
+      </section>
+
+      <section data-markdown>
+        <textarea data-template data-separator-notes="^Note:">
+            ## Resources
+
+            * [OWASP Code Review Guide](https://www.owasp.org/index.php/Category:OWASP_Code_Review_Project)
+            * [Drupal 8: Writing Secure Code](https://www.drupal.org/docs/8/security/writing-secure-code-for-drupal-8)
         </textarea>
       </section>
 
