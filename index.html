@@ -447,6 +447,7 @@
         <textarea data-template data-separator-notes="^Note:">
             ## Twig template XSS<!-- .element: class="fragment" -->
 
+            node.html.twig
             ```twig
             <article{{ attributes.addClass(classes) }}>
               <header>
@@ -470,9 +471,46 @@
 
       <section data-markdown>
         <textarea data-template data-separator-notes="^Note:">
+            ## XSS Testing
+
+            Unsure if safe? Test inputs with
+
+            `<script>alert("XSS");</script>`
+
+            ![Screenshot](xss-popup.png)
+        </textarea>
+      </section>
+
+      <section data-markdown>
+        <textarea data-template data-separator-notes="^Note:">
+            ## Auto-escape bypass in HTML attributes<!-- .element: class="fragment" -->
+
+            node.html.twig
+            ```twig
+            <article>
+              <header><h2>{{ node.label }}</h2></header>
+              <div{{ content_attributes.addClass('node__content') }}>
+                <img src={{ node.label }}>
+              </div>
+            </article>
+            ```
+
+            attacker node title:<!-- .element: class="fragment" -->
+
+            `a onerror=javascript:alert(1);`<!-- .element: class="fragment" -->
+            ```html
+            <img src=a onerror=javascript:alert(1);>
+            ```
+            <!-- .element: class="fragment" -->
+        </textarea>
+      </section>
+
+      <section data-markdown>
+        <textarea data-template data-separator-notes="^Note:">
             ## XSS output summarized
 
             * Drupal 8's auto-escaping is really good
+              * Watch out what you put in HTML attributes
             * XSS in Drupal 7 is the most common security vulnerability! Check:
               * PHP templates
               * Theme functions
@@ -480,20 +518,6 @@
               * Page callbacks that generate output
               * check_plain() and friends should be used, see [Handle text in a secure fashion](https://www.drupal.org/docs/7/security/writing-secure-code/handle-text-in-a-secure-fashion)
 
-        </textarea>
-      </section>
-
-      <section data-markdown>
-        <textarea data-template data-separator-notes="^Note:">
-            ## XSS Testing
-
-            Unsure if safe? Test inputs with
-
-            ```html
-            <script>alert("XSS");</script>
-            ```
-
-            ![Screenshot](xss-popup.png)
         </textarea>
       </section>
 
