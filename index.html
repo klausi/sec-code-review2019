@@ -416,11 +416,65 @@
 
       <section data-markdown>
         <textarea data-template data-separator-notes="^Note:">
+            ## AccessResult::isForbidden() trap<!-- .element: class="fragment" -->
+
+            ```php
+            public function resolve(?AccountInterface $accessUser,
+              ?string $accessOperation, FieldContext $context) {
+              $entity = $this->load();
+              /* @var $accessResult \Drupal\Core\Access\AccessResultInterface */
+              $accessResult = $entity->access($accessOperation, $accessUser,
+                TRUE);
+              $context->addCacheableDependency($accessResult);
+              if ($accessResult->isForbidden()) {
+                return NULL;
+              }
+              return $entity;
+            }
+            ```
+            Access bypass because isForbidden() is FALSE on neutral results<!-- .element: class="fragment" -->
+        </textarea>
+      </section>
+
+      <section data-markdown>
+        <textarea data-template data-separator-notes="^Note:">
+            ## AccessResult::isAllowed() is correct
+
+            <pre><code data-trim data-line-numbers="8">
+            public function resolve(?AccountInterface $accessUser,
+              ?string $accessOperation, FieldContext $context) {
+              $entity = $this->load();
+              /* @var $accessResult \Drupal\Core\Access\AccessResultInterface */
+              $accessResult = $entity->access($accessOperation, $accessUser,
+                TRUE);
+              $context->addCacheableDependency($accessResult);
+              if (!$accessResult->isAllowed()) {
+                return NULL;
+              }
+              return $entity;
+            }
+            </code></pre>
+
+            Familiarize yourself with allowed, neutral, forbidden access results.
+        </textarea>
+      </section>
+
+      <section data-markdown>
+        <textarea data-template data-separator-notes="^Note:">
+            ## [AccessResultInterface documentation](https://api.drupal.org/api/drupal/core%21lib%21Drupal%21Core%21Access%21AccessResultInterface.php/interface/AccessResultInterface/8.8.x)
+
+            > IMPORTANT NOTE\: You have to call isAllowed() when you want to know whether someone has access.
+        </textarea>
+      </section>
+
+      <section data-markdown>
+        <textarea data-template data-separator-notes="^Note:">
             ## Access control summarized
 
             * Look in access hooks like hook_entity_access()
             * Look in access controllers (EntityAccessControlHandler)
             * Are the if() conditions correct?
+            * Is any AccessResult usage correct with ->isAllowed()?
         </textarea>
       </section>
 
@@ -640,6 +694,21 @@
 
           Attacker mindset: how could the code be abused?
 
+        </textarea>
+      </section>
+
+      <section data-markdown>
+        <textarea data-template data-separator-notes="^Note:">
+          ## Security as a process
+
+          1. Regular software component updates
+          2. Security training for developers (also stake holders)
+          3. Defense in depth (server, config, code, people)
+          4. Code review & Testing
+          5. Incident response plan/process
+          6. Penetration tests
+
+          Code review is only 1 part in it!
         </textarea>
       </section>
 
