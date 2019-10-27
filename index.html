@@ -93,6 +93,7 @@
           * Code review is part of the quality assurance process
           * Code review is often done in Pull Requests
           * One developer writes the code, another developer reads the code
+          * All changes to Drupal core are code reviewed for example
         </aside>
 
       </section>
@@ -296,6 +297,9 @@
             }
             ```
           </textarea>
+
+          Note:
+          * In Drupal 7 routing works differently, scenario is the same
       </section>
 
       <section data-markdown>
@@ -313,6 +317,11 @@
               return $items;
             }
             ```
+
+            Note:
+            * You see how the routing access features also existed in Drupal 7
+            * Same considerations apply: no menu path should be unproteced!
+            * Use a code comment in cases where open access is required to let your reviewer know why!
         </textarea>
       </section>
 
@@ -334,6 +343,12 @@
               db_delete('pants')->condition('id', $pant_id)->execute();
             }
             ```
+
+            Note:
+            * Unfortunately there is no built-in CSRF protection as in Drupal 8
+            * Again: use confirmation forms or CSRF tokens
+            * You need to do CSRF token validation yourself in your page callback
+            * Explain that in code comments to your reviewer
         </textarea>
       </section>
 
@@ -343,12 +358,15 @@
 
             * Drupal 8:
               * routing.yml files
-              * controllers in src
+              * controllers and forms in src
             * Drupal 7:
               * hook_menu() in module files
               * page callbacks in module/inc files
 
             Check for Access Bypass and CSRF there!
+
+            Note:
+
         </textarea>
       </section>
 
@@ -371,6 +389,15 @@
             Never concatenate variables into SQL strings!<!-- .element: class="fragment" -->
 
             [OWASP A1-Injection](https://www.owasp.org/index.php/Top_10-2017_A1-Injection)<!-- .element: class="fragment" -->
+
+            Note:
+            * the where clause might actually be a bit hard to exploit here.
+            * If $timestamp is attacker controlled they can try to inject subqueries
+            * OWASP qualifies this as the number 1 vulnerability in their top 10
+            * SQL injection in Drupal often means Remote Code Execution capabilities for an attacker
+            * Drupal caches route callbacks in the database, an attacker could overwrite that with SQL injection
+            * Injection happens at the boundary of systems, where data and instructions are mixed
+            * The receiving system (database) cannot distinguish and the built query string what is a safe part of the instructions and what is data injected by an attacker.
         </textarea>
       </section>
 
@@ -390,6 +417,10 @@
               return $query->execute()->fetchCol();
             }
             ```
+
+            Note:
+            * Use the Drupal database API correctly with placeholders for the user provided data
+            * It will then escape all provided data correctly so that it cannot mix with query commands
         </textarea>
       </section>
 
@@ -409,7 +440,16 @@
               return parsed;
             }
             ```
+            with $url<!-- .element: class="fragment" -->
+
+            ```https://x.y; echo /etc/passwd```<!-- .element: class="fragment" -->
         </textarea>
+
+        Note:
+        * Same system boundary problem as with SQL injection
+        * This time directly Remote Code Execution on the shell outside PHP
+        * An attacker can mix in instructions
+
       </section>
 
       <section data-markdown>
@@ -443,6 +483,9 @@
             * Look in page callbacks (D7) and controllers (D8) for database queries and SQL
             * Look in API functions, services, plugins for shell_exec(), exec(), system() and friends
             * Concatenating strings (user input) is a good indicator
+
+            Note:
+            * Review database calls and shell calls super carefully and critically.
         </textarea>
       </section>
 
@@ -470,6 +513,10 @@
                 }
               }
             </code></pre>
+
+            Note:
+            * There is no comparison operator in the first if()
+            * Access will always be allowed, which is an access bypass.
         </textarea>
       </section>
 
@@ -489,7 +536,7 @@
               // Other code omitted here...
             </code></pre>
 
-            * `if ($accessResult())`
+            * `if ($accessResult)`
             * will always be TRUE because it is an object and true-ish!
             * for access checks always use
             * `if ($accessResult->isAllowed())`
@@ -515,6 +562,13 @@
             }
             ```
             Access bypass because isForbidden() is FALSE on neutral results<!-- .element: class="fragment" -->
+
+            Note:
+            * Drupal's AccessResult system has 3 states: allowed, neutral, forbidden
+            * This is done for extensibility reasons when multiple access implementors contribute to the access result
+            * isForbidden() only returns TRUE if access was explicitly forbidden
+            * This is an example vulnerability from the GraphQL module that was overlooked by 3 very senior developers
+            * Even very experienced people make mistakes; code reviews should catch them!
         </textarea>
       </section>
 
@@ -538,6 +592,9 @@
             </code></pre>
 
             Familiarize yourself with allowed, neutral, forbidden access results.
+
+            Note:
+            * The basic rules is to only use isAllowed()
         </textarea>
       </section>
 
@@ -546,6 +603,9 @@
             ## [AccessResultInterface documentation](https://api.drupal.org/api/drupal/core%21lib%21Drupal%21Core%21Access%21AccessResultInterface.php/interface/AccessResultInterface/8.8.x)
 
             > IMPORTANT NOTE\: You have to call isAllowed() when you want to know whether someone has access.
+
+            Note:
+            * This documentation is easily overlooked by developers and then they make mistakes.
         </textarea>
       </section>
 
@@ -557,6 +617,10 @@
             * Look in access controllers (EntityAccessControlHandler)
             * Are the if() conditions correct?
             * Is any AccessResult usage correct with ->isAllowed()?
+            * Is access cache context information set correctly?
+
+            Note:
+            * Caching information for access results can also lead to access bypass problems.
         </textarea>
       </section>
 
@@ -576,6 +640,11 @@
             </ul>
 
             [OWASP A7-Cross-Site Scripting (XSS)](https://www.owasp.org/index.php/Top_10-2017_A7-Cross-Site_Scripting_(XSS))
+
+            Note:
+            * XSS = Cross Site Scripting
+            * An attacker tries to invoke Javascript under their control
+            * In this case just an alert popup, but they would typically try to take over your admin account
         </textarea>
       </section>
 
@@ -602,6 +671,9 @@
             ```
 
             Review templates if the raw filter is used correcty.<!-- .element: class="fragment" -->
+
+            Note:
+            * All variable embedding here is fine because Twig auto-escaping is enabled
         </textarea>
       </section>
 
@@ -614,6 +686,12 @@
             `<script>alert("XSS");</script>`
 
             ![Screenshot](xss-popup.png)
+
+            Note:
+            * Put this in form input fields
+            * Put this in URL parameters that you think might be printed (reflected XSS)
+            * Sometimes the input flow through Drupal code and modules is hard to trace
+            * Then testing for XSS might be a good solution when unsure in code review.
         </textarea>
       </section>
 
@@ -638,6 +716,12 @@
             <img src=a onerror=javascript:alert(1);>
             ```
             <!-- .element: class="fragment" -->
+
+            Note:
+            * The context is important to protect against XSS
+            * The auto-escaping does not help here because no quotes are used (always quote your attributes!)
+            * When you supply user provided data to CSS style elements then you have to be even more rigid what is allowed
+            * The OWASP XSS cheat sheet is a good resource on how exploits can be crafted
         </textarea>
       </section>
 
@@ -683,7 +767,10 @@
         ```
 
         Note:
+        * Drupal core vulnerability that was fixed this year
         * Only exploitable if REST module and REST resources enabled
+        * Works even on GET requests, it just needs the deserialization to happen.
+        * The options property is a multi-purpose blob of key-value data, serialized in Druapl's database
         </textarea>
       </section>
 
@@ -709,6 +796,10 @@
         Note:
         * Source: https://www.ambionics.io/blog/drupal8-rce
         * PHPGGC: https://github.com/ambionics/phpggc
+        * The attacker abuses a PHP class from Guzzle bundled with Drupal
+        * The Guzzle object is prepared with attacker code in it
+        * The attacker code is executed when the deserialized object runs out of scope and the destructor is called
+        * Similar exploits exist for Drupal 7 using other bundled classes
         </textarea>
       </section>
 
@@ -727,6 +818,7 @@
 
           Note:
           * the 'allowed_classes' parameter only exists since PHP 7.
+          * in the Drupal field case no classes are used anyway, just arrays in the serialized data
         </textarea>
       </section>
 
