@@ -52,6 +52,12 @@
             </a>
 
             Drupalcon Amsterdam 2019
+
+            Note:
+            * I work for jobiqo, a job board software provider that is using Drupal. I have been a Drupal developer for more than 11 years.
+            * I have reviewed more than 1000 modules in the security advisory coverage queue
+            * I was a member of the Drupal Security Team
+            * I specialize in code review and correct Drupal API usage.
             </textarea>
       </section>
       <section>
@@ -83,6 +89,12 @@
 
         </div>
 
+        <aside data-template class="notes">
+          * Code review is part of the quality assurance process
+          * Code review is often done in Pull Requests
+          * One developer writes the code, another developer reads the code
+        </aside>
+
       </section>
       <section data-markdown>
         <textarea data-template data-separator-notes="^Note:">
@@ -97,7 +109,15 @@
             +-- pants.routing.yml
             +-- pants.services.yml
             +-- pants.token.inc
+            +-- pants.html.twig
             </pre>
+
+            Note:
+            * This is a typical Drupal 8 module layout on the file system
+            * The routing and the module files are the places you want to start reviewing
+            * Controllers and services are interesting next
+            * Then check output in Twig template files
+            * Eventually read through all code of the module (if feasible)
 
           </textarea>
       </section>
@@ -116,6 +136,13 @@
               +-- pants.services.yml
               +-- pants.token.inc
               </pre>
+
+              Note:
+              * Let's start looking at the attack entry point of Routing
+              * "pants" is just an example module name here
+              * Incoming requests are handled here and forwarded to controllers or forms
+              * An attacker will try to craft requests that bypass security protections
+              * This is not the only way to exploit weaknesses in a module, but one of the most obvious ones.
 
             </textarea>
       </section>
@@ -137,6 +164,12 @@
             The permission "access content" is probably not correct for an admin page!<!-- .element: class="fragment" -->
 
             [OWASP A5-Broken Access Control](https://www.owasp.org/index.php/Top_10-2017_A5-Broken_Access_Control)<!-- .element: class="fragment" -->
+
+            Note:
+            * _permission should be something like "administer pants" or similar
+            * The Open Web Application Security Project (OWASP) has a very good classification of vulnerabilities
+            * This would qualify as Broken Access Control
+            * It ranks 5th on the top 10 vulnerabilities they identified in 2017
           </textarea>
       </section>
 
@@ -156,6 +189,11 @@
             ```
             Really dangerous, any attacker can access this admin path!
           </textarea>
+
+          Note:
+          * Similar example as before: access control not set up correctly
+          * Maybe a developer just allowed any access during development and forgot to change it
+          * Always verify that the route requirements for access are correct
       </section>
 
       <section data-markdown>
@@ -179,6 +217,11 @@
               }
             }
             ```
+
+            Note:
+            * Example looks correct on first sight
+            * The correct permission is used
+            * User intent is not verified at any point
           </textarea>
       </section>
 
@@ -195,6 +238,45 @@
             4. Pants 5 are deleted behind your back!
 
             Solution: confirmation forms or CSRF tokens in the URL/request
+          </textarea>
+
+          Note:
+          * Browsers are starting to block 3rd party cookies, so the img exploit will be mitigated a bit
+          * An attacker can still trick you into clicking a vulnerable link, so CSRF remains
+          * Drupal 8 has some help in the routing system with _csrf_token
+          * Whenever you see a controller performing any data changing actions then there must be a confirmation form or _csrf_token.
+      </section>
+
+      <section data-markdown>
+        <textarea data-template data-separator-notes="^Note:">
+            ## Using CSRF tokens
+            pants.routing.yml
+            ```yml
+            pants.delete:
+              path: '/pants/delete/{pants}'
+              defaults:
+                _controller: '\Drupal\pants\DeleteController::delete'
+              requirements:
+                _permission: 'delete pants'
+                _csrf_token: 'TRUE'
+            ```
+            Generating a URL/link
+            ```php
+            $url = Url::fromRoute('pants.delete', ['pants' => 5]);
+            ```
+            <pre>
+            /pants/delete/5?token=g_AGjC3tJsUhAO7Gfcfw9m94NollCAIxeMR69PQ7Qo0
+            </pre>
+
+            Note:
+            * The token in the URL is created from the session of the current user
+            * cannot be guessed by an attacker
+            * The routing system validates _csrf_token
+            * Access is denied if the token is missing or invalid
+            * Use case: when confirmation forms would downgrade usability
+            * Example: Deleting a shortcut link in Drupal core
+            * If clicked by accident a deleted shortcut is not that bad.
+            * Use forms and confirmation forms per default for changing data
           </textarea>
       </section>
 
