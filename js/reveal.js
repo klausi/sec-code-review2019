@@ -172,7 +172,7 @@
 			pause: true,
 
 			// Flags if speaker notes should be visible to all viewers
-			showNotes: false,
+			showNotes: true,
 
 			// Global override for autolaying embedded media (video/audio/iframe)
 			// - null:   Media will only autoplay if data-autoplay is present
